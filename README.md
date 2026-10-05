@@ -13,16 +13,18 @@ Designed for reliability, time-travel querying, schema evolution, and automated 
 
 ## Architecture Overview
 
-[ Telemetry Producer ] ---> ( Kafka Topic: ai_telemetry_events )
-|
-v
-[ Spark Structured Streaming ]
-|
-( Iceberg Catalog / Metastore )
-v
-[ Iceberg Table: ai_telemetry_events ]
-/ \
- ( Parquet Files ) ( Metadata Snapshots )
+```mermaid
+flowchart TD
+    A[Telemetry Producer] -->|JSON Messages| B(Kafka Topic: ai_telemetry_events)
+    B --> C[Spark Structured Streaming Engine]
+    C <--> D[(Iceberg Catalog / Metastore)]
+    C -->|Micro-batch Commit| E[Iceberg Table: ai_telemetry_events]
+
+    subgraph Iceberg Table Storage
+        E --> F[Parquet Data Files]
+        E --> G[Metadata & Snapshot Logs]
+    end
+```
 
 ---
 
