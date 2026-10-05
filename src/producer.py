@@ -38,10 +38,10 @@ def generate_telemetry_payload() -> dict:
         ("gpt-4o", "openai"),
         ("claude-3-5-sonnet", "anthropic"),
         ("llama-3-70b", "meta"),
-        ("internal-apple-llm-v1", "apple")
+        ("internal-model-llm-v1", "apple")
     ]
     apps = ["search-agent-v2", "customer-support-bot", "code-assistant", "summarization-engine"]
-    orgs = ["retail-analytics", "search-relevance", "core-platform", "siri-intelligence"]
+    orgs = ["retail-analytics", "search-relevance", "core-platform", "data-intelligence"]
 
     selected_model, provider = random.choice(models)
 
