@@ -40,16 +40,18 @@ flowchart TD
 
 ## Repository Structure
 
+```text
 realtime-lakehouse-telemetry/
 ├── config/
-│ └── spark_config.py # SparkSession factory with Iceberg Spark extensions
+│   └── spark_config.py      # SparkSession factory with Iceberg Spark extensions
 ├── src/
-│ ├── producer.py # Kafka event producer generating synthetic AI telemetry
-│ ├── streaming_sink.py # Spark Structured Streaming pipeline to Iceberg
-│ ├── compaction.py # Iceberg table compaction & snapshot expiration
-│ └── verify_iceberg.py # SQL query verification & metadata inspection script
-├── requirements.txt # Dependencies (pyspark, kafka-python, etc.)
+│   ├── producer.py          # Kafka event producer generating synthetic AI telemetry
+│   ├── streaming_sink.py    # Spark Structured Streaming pipeline to Iceberg
+│   ├── compaction.py        # Iceberg table compaction & snapshot expiration
+│   └── verify_iceberg.py    # SQL query verification & metadata inspection script
+├── requirements.txt         # Dependencies (pyspark, kafka-python, etc.)
 └── README.md
+```
 
 ---
 
