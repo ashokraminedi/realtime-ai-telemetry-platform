@@ -1,40 +1,164 @@
-# Real-Time AI Telemetry Lakehouse Engine ⚡🧊
+# Real-Time AI Telemetry Lakehouse
 
-![Apache Spark](https://img.shields.io/badge/Apache_Spark-3.5.1-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)
-![Apache Iceberg](https://img.shields.io/badge/Apache_Iceberg-1.5.0-0080FF?style=for-the-badge&logo=apacheiceberg&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-2.12-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+A production-oriented streaming data platform for ingesting high-volume AI/ML runtime telemetry from **Apache Kafka**, processing it with **Apache Spark Structured Streaming**, and persisting it into **Apache Iceberg** for reliable analytics.
 
-A high-throughput, low-latency telemetry ingestion pipeline that ingests continuous AI/ML runtime events from **Apache Kafka** and streams them into **Apache Iceberg** table format using **Spark Structured Streaming**.
+The project demonstrates core data-platform concerns such as **streaming ingestion, ACID commits, schema evolution, time travel, partition pruning, checkpoint-based recovery, and small-file compaction**.
 
-Designed for reliability, time-travel querying, schema evolution, and automated small-file compaction in enterprise-grade analytics platforms.
+## Architecture
+
+```mermaid
+flowchart LR
+    A[AI / ML Telemetry Producer]
+        -->|JSON Events| B[Apache Kafka]
+
+    B --> C[Spark Structured Streaming]
+
+    C -->|Parse & Validate| D[Streaming Transformation]
+    D -->|Micro-batch Commit| E[Apache Iceberg]
+
+    E --> F[Parquet Data Files]
+    E --> G[Snapshots & Metadata]
+
+    H[Compaction / Maintenance] --> E
+    I[Analytics / SQL Consumers] --> E
+```
+
+### Data Flow
+
+```text
+Telemetry Producer
+        │
+        ▼
+     Kafka
+        │
+        ▼
+Spark Structured Streaming
+        │
+        ├── Parse telemetry events
+        ├── Apply schema
+        ├── Process micro-batches
+        └── Maintain streaming checkpoints
+        │
+        ▼
+Apache Iceberg
+        │
+        ├── Parquet data files
+        ├── Snapshot metadata
+        ├── Schema evolution
+        └── Time-travel history
+        │
+        ▼
+Analytics / SQL Consumers
+```
 
 ---
 
-## Architecture Overview
+## Why This Project?
 
-```mermaid
-flowchart TD
-    A[Telemetry Producer] -->|JSON Messages| B(Kafka Topic: ai_telemetry_events)
-    B --> C[Spark Structured Streaming Engine]
-    C <--> D[(Iceberg Catalog / Metastore)]
-    C -->|Micro-batch Commit| E[Iceberg Table: ai_telemetry_events]
+Real-time telemetry pipelines have requirements beyond simply moving events from a message broker into storage.
 
-    subgraph Iceberg Table Storage
-        E --> F[Parquet Data Files]
-        E --> G[Metadata & Snapshot Logs]
-    end
-```
+Production systems must handle:
+
+| Challenge                   | Design                                    |
+| --------------------------- | ----------------------------------------- |
+| Continuous event ingestion  | Kafka + Spark Structured Streaming        |
+| Reliable streaming recovery | Spark checkpointing                       |
+| Consistent table updates    | Iceberg atomic snapshot commits           |
+| Schema changes              | Iceberg schema evolution                  |
+| Growing historical data     | Partitioned Parquet storage               |
+| Concurrent reads and writes | Iceberg snapshot isolation                |
+| Streaming small-file growth | Automated data-file compaction            |
+| Historical debugging        | Iceberg time travel and snapshot metadata |
+
+The goal of this project is to demonstrate how these concerns can be handled using an open lakehouse architecture.
 
 ---
 
 ## Key Features
 
-- **ACID Ingestion at Scale**: Micro-batch streaming directly into Iceberg table format with atomic commits and exactly-once processing guarantees.
-- **Hidden Partitioning**: Optimized layout strategy on `hours(timestamp)` to eliminate partition management overhead while boosting query pruning performance.
-- **Schema Evolution**: Native support for additive, structural, and field-rename schema changes without full-table rewrites or downstream pipeline breaks.
-- **Time Travel & Snapshot Isolation**: Concurrent streaming writes and analytical reads with complete commit metadata visibility.
-- **Automated Maintenance**: Pre-configured table maintenance workflows utilizing Iceberg's `rewriteDataFiles` for small-file compaction and `expireSnapshots` for storage optimization.
+### Real-Time Kafka Ingestion
+
+Synthetic AI/ML telemetry events are continuously published to Kafka and consumed using Spark Structured Streaming.
+
+The architecture separates event generation from downstream processing, allowing producers and consumers to scale independently.
+
+### Reliable Streaming Processing
+
+Spark Structured Streaming provides micro-batch execution and checkpoint-based recovery.
+
+This allows the pipeline to recover processing state after failures without restarting ingestion from the beginning.
+
+### ACID Lakehouse Storage
+
+Events are persisted into Apache Iceberg tables instead of directly managing raw Parquet files.
+
+Iceberg provides:
+
+- atomic table commits
+- snapshot isolation
+- metadata-driven table state
+- concurrent read/write support
+- schema evolution
+- time-travel queries
+
+### Hidden Partitioning
+
+The telemetry table uses Iceberg partition transforms based on event time:
+
+```text
+hours(timestamp)
+```
+
+Consumers query logical columns such as `timestamp` without needing to understand the physical partition layout.
+
+This improves partition pruning while avoiding manually managed partition columns.
+
+### Schema Evolution
+
+Telemetry schemas evolve as services and ML systems introduce new attributes.
+
+Iceberg allows compatible schema changes without requiring full-table rewrites.
+
+Typical changes include:
+
+```text
+ADD COLUMN
+RENAME COLUMN
+ALTER COLUMN
+```
+
+### Time Travel & Snapshot Inspection
+
+Every successful Iceberg commit produces a new table snapshot.
+
+Snapshots make it possible to inspect historical table state and understand how data changed over time.
+
+Example:
+
+```sql
+SELECT
+    snapshot_id,
+    committed_at,
+    operation
+FROM local.db.ai_telemetry_events.snapshots
+ORDER BY committed_at DESC;
+```
+
+### Small-File Compaction
+
+Frequent streaming micro-batches can generate many small Parquet files.
+
+The project includes a maintenance workflow using Iceberg's `rewrite_data_files` procedure to consolidate them into larger files.
+
+```sql
+CALL local.system.rewrite_data_files(
+    table => 'local.db.ai_telemetry_events',
+    strategy => 'sort',
+    sort_order => 'timestamp ASC'
+);
+```
+
+Snapshot expiration can also be used to control metadata and storage growth over time.
 
 ---
 
@@ -42,91 +166,293 @@ flowchart TD
 
 ```text
 realtime-lakehouse-telemetry/
+│
 ├── config/
-│   └── spark_config.py      # SparkSession factory with Iceberg Spark extensions
+│   └── spark_config.py
+│       # SparkSession configuration and Iceberg extensions
+│
 ├── src/
-│   ├── producer.py          # Kafka event producer generating synthetic AI telemetry
-│   ├── streaming_sink.py    # Spark Structured Streaming pipeline to Iceberg
-│   ├── compaction.py        # Iceberg table compaction & snapshot expiration
-│   └── verify_iceberg.py    # SQL query verification & metadata inspection script
-├── requirements.txt         # Dependencies (pyspark, kafka-python, etc.)
+│   ├── producer.py
+│   │   # Generates synthetic AI telemetry and publishes to Kafka
+│   │
+│   ├── streaming_sink.py
+│   │   # Kafka → Spark Structured Streaming → Iceberg pipeline
+│   │
+│   ├── compaction.py
+│   │   # Iceberg data-file compaction and snapshot maintenance
+│   │
+│   └── verify_iceberg.py
+│       # Queries records and inspects Iceberg metadata
+│
+├── tests/
+│   # Pipeline and component tests
+│
+├── docker-compose.yml
+│   # Local infrastructure
+│
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Quickstart Guide
+## Technology Stack
 
-### 1. Environment Setup
-
-Ensure Python 3.10+, Java 8/11/17, and a running Apache Kafka broker (`localhost:9092`) are available.
-
-# Clone the repository
-
-git clone https://github.com/your-username/realtime-lakehouse-telemetry.git
-cd realtime-lakehouse-telemetry
-
-# Create and activate virtual environment
-
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-
-pip install -r requirements.txt
-
-### 2. Start Streaming Ingestion Engine
-
-Launch the Spark Structured Streaming sink to set up the catalog and consume incoming Kafka messages:
-
-python -m src.streaming_sink
-
-### 3. Generate Telemetry Load
-
-In a separate terminal, trigger the telemetry producer to send micro-batches to Kafka:
-
-python -m src.producer
+| Layer                  | Technology                        |
+| ---------------------- | --------------------------------- |
+| Event Streaming        | Apache Kafka                      |
+| Stream Processing      | Apache Spark Structured Streaming |
+| Processing API         | PySpark                           |
+| Lakehouse Table Format | Apache Iceberg                    |
+| Storage Format         | Apache Parquet                    |
+| Catalog                | Hadoop / Local Catalog            |
+| Language               | Python                            |
+| Local Infrastructure   | Docker Compose                    |
 
 ---
 
-## Verification & Metadata Inspection
+## Quick Start
 
-Query table records and inspect commit snapshots:
+### Prerequisites
 
-python -c '
+Ensure the following are installed:
+
+- Python 3.10+
+- Java 11 or 17
+- Docker / Docker Compose
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ashokraminedi/realtime-lakehouse-telemetry.git
+cd realtime-lakehouse-telemetry
+```
+
+### 2. Create a Python Environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+On Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Start Local Infrastructure
+
+```bash
+docker compose up -d
+```
+
+Verify the containers are running:
+
+```bash
+docker compose ps
+```
+
+### 4. Start the Streaming Pipeline
+
+Start the Spark Structured Streaming consumer:
+
+```bash
+python -m src.streaming_sink
+```
+
+The streaming job consumes telemetry events from Kafka and commits each processed micro-batch into the Iceberg table.
+
+### 5. Generate Telemetry
+
+In another terminal:
+
+```bash
+python -m src.producer
+```
+
+The producer generates synthetic AI/ML runtime telemetry and publishes the events to Kafka.
+
+---
+
+## Verify the Pipeline
+
+Run:
+
+```bash
+python -m src.verify_iceberg
+```
+
+Or query the table directly through Spark SQL:
+
+```python
 from config.spark_config import get_spark_session
 
 spark = get_spark_session("Iceberg-Verification")
 
-print("\n--- Recent Telemetry Events ---")
-spark.sql("SELECT \* FROM local.db.ai_telemetry_events ORDER BY timestamp DESC LIMIT 10").show(truncate=False)
-
-print("\n--- Iceberg Snapshots Metadata ---")
-spark.sql("SELECT snapshot_id, committed_at, operation FROM local.db.ai_telemetry_events.snapshots").show(truncate=False)
-'
-
----
-
-## Table Maintenance & Performance Tuning
-
-To optimize small files generated by continuous micro-batch streaming, run table compaction procedures periodically:
-
-# Execute Iceberg layout compaction
-
 spark.sql("""
-CALL local.system.rewrite_data_files(
-table => 'local.db.ai_telemetry_events',
-strategy => 'sort',
-sort_order => 'timestamp ASC'
-)
-""")
+    SELECT *
+    FROM local.db.ai_telemetry_events
+    ORDER BY timestamp DESC
+    LIMIT 10
+""").show(truncate=False)
+```
+
+Inspect Iceberg snapshot history:
+
+```python
+spark.sql("""
+    SELECT
+        snapshot_id,
+        committed_at,
+        operation
+    FROM local.db.ai_telemetry_events.snapshots
+    ORDER BY committed_at DESC
+""").show(truncate=False)
+```
 
 ---
 
-## Technology Stack
+## Table Maintenance
 
-- **Engine**: Apache Spark 3.5.x (PySpark)
-- **Table Format**: Apache Iceberg 1.5.0
-- **Message Broker**: Apache Kafka 0.10+
-- **Storage Format**: Apache Parquet
-- **Catalog Strategy**: Hadoop / In-Memory Local Metastore
+Continuous streaming workloads can create many small data files.
+
+Run the maintenance job:
+
+```bash
+python -m src.compaction
+```
+
+The maintenance workflow is responsible for operations such as:
+
+```text
+rewrite_data_files
+        │
+        └── Combine small Parquet files
+
+expire_snapshots
+        │
+        └── Remove obsolete snapshot metadata
+```
+
+In a production environment these operations would typically run periodically through an orchestrator such as Airflow or a scheduled Spark job.
+
+---
+
+## Reliability Model
+
+The pipeline uses multiple layers of reliability:
+
+```text
+Kafka offsets
+     │
+     ▼
+Spark Structured Streaming checkpoint
+     │
+     ▼
+Micro-batch execution
+     │
+     ▼
+Iceberg atomic snapshot commit
+     │
+     ▼
+Durable table state
+```
+
+A production deployment would additionally consider:
+
+- durable checkpoint storage
+- Kafka replication and retention
+- malformed-event handling / dead-letter queues
+- retry policies
+- streaming lag monitoring
+- data-quality validation
+- schema compatibility controls
+- compaction scheduling
+- snapshot-retention policies
+
+---
+
+## Production Scaling Path
+
+The local implementation intentionally keeps infrastructure lightweight while preserving the same architectural boundaries used by larger deployments.
+
+| Local Implementation  | Production Equivalent                |
+| --------------------- | ------------------------------------ |
+| Local Kafka           | Managed Kafka / Confluent / MSK      |
+| Local Spark           | Dataproc / EMR / Kubernetes Spark    |
+| Local Iceberg catalog | REST / Hive / Glue catalog           |
+| Local filesystem      | S3 / GCS / ADLS                      |
+| Local checkpoint      | Durable object storage               |
+| Manual maintenance    | Airflow / scheduled Spark jobs       |
+| Local monitoring      | Prometheus / Grafana / OpenTelemetry |
+
+This separation allows the ingestion, processing, storage, and maintenance layers to evolve independently.
+
+---
+
+## Design Principles
+
+The project emphasizes several production data-platform principles:
+
+**Idempotent processing**  
+Retries should not create inconsistent table state.
+
+**Failure recovery**  
+Streaming progress should survive process and infrastructure failures.
+
+**Storage/compute separation**  
+Streaming processing remains independent from the durable lakehouse representation.
+
+**Schema evolution**  
+Telemetry producers can evolve without requiring complete historical rewrites.
+
+**Observability**  
+Streaming lag, throughput, failures, commit latency, and table health should be measurable.
+
+**Maintainability**  
+Compaction and snapshot retention are treated as first-class lifecycle operations rather than afterthoughts.
+
+---
+
+## Future Improvements
+
+Potential extensions include:
+
+- dead-letter queue for malformed telemetry
+- event-time watermarking and late-event handling
+- schema registry integration
+- streaming data-quality metrics
+- Prometheus / OpenTelemetry instrumentation
+- Grafana operational dashboards
+- automated Airflow maintenance DAGs
+- cloud object-storage deployment
+- Iceberg REST catalog
+- Kubernetes deployment
+- load and failure-recovery testing
+
+---
+
+## What This Project Demonstrates
+
+This repository is intended as a practical implementation of the core engineering concepts behind modern real-time data platforms:
+
+**Kafka → Spark Structured Streaming → Apache Iceberg → Parquet**
+
+with particular emphasis on:
+
+- distributed streaming
+- fault recovery
+- lakehouse table design
+- incremental processing
+- schema evolution
+- ACID data management
+- time travel
+- table maintenance
+- production-oriented data-platform architecture
