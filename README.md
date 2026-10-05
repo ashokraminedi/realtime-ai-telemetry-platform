@@ -19,6 +19,9 @@ The project demonstrates core **AI & Data Platform engineering** concepts includ
 
 ## Architecture
 
+<img width="1774" height="887" alt="Real-Time AI Telemetry Data Pipeline" src="https://github.com/user-attachments/assets/b2f93975-f796-4f53-936c-abad469b9df6" />
+
+
 ```mermaid
 flowchart LR
     A[AI / ML Applications] -->|Telemetry Events| B[Apache Kafka]
