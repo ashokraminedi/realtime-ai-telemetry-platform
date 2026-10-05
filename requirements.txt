@@ -1,9 +1,8 @@
-pyspark>=3.5.0
-pyspark-stubs
-kafka-python
-fastapi
-uvicorn
-faiss-cpu
-streamlit
-pandas
-pytest
+pyspark==3.5.1
+kafka-python-ng==2.2.2
+fastapi==0.110.0
+uvicorn==0.28.0
+faiss-cpu>=1.15.0
+streamlit==1.32.0
+pandas==2.2.1
+pytest==8.1.1
