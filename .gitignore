@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.venv/
+venv/
+.env
+
+# Spark & Lakehouse Warehouse Storage
+spark-warehouse/
+metastore_db/
+*.log
+
+# IDE & OS
+.vscode/
+.DS_Store
