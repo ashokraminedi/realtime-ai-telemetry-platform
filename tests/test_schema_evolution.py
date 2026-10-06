@@ -1,6 +1,9 @@
+
 def test_iceberg_schema_evolution(spark):
     """Validates that Iceberg schema evolution allows writing new fields seamlessly."""
     table_name = "test_cat.db.schema_test"
+
+    spark.sql(f"DROP TABLE IF EXISTS {table_name}")
 
     # Step 1: Create base table (v1 schema)
     spark.sql(
@@ -9,6 +12,15 @@ def test_iceberg_schema_evolution(spark):
             event_id STRING,
             event_type STRING
         ) USING iceberg
+    """
+    )
+
+    spark.sql(
+        f"""
+        ALTER TABLE {table_name}
+        SET TBLPROPERTIES (
+            'write.spark.accept-any-schema'='true'
+        )
     """
     )
 
@@ -34,3 +46,5 @@ def test_iceberg_schema_evolution(spark):
     assert len(result_df.columns) == 3
     assert "prompt_tokens" in result_df.columns
     assert result_df.count() == 2
+
+    spark.sql(f"DROP TABLE IF EXISTS {table_name}")
