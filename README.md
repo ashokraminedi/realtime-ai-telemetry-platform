@@ -583,7 +583,7 @@ docker compose version
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ashokraminedi/realtime-lakehouse-telemetry.git
+git clone https://github.com/<username>/realtime-lakehouse-telemetry.git
 
 cd realtime-lakehouse-telemetry
 ```
@@ -635,7 +635,7 @@ Terminal 4 → Streamlit Dashboard
 ## Terminal 1 — Start Infrastructure
 
 ```bash
-cd /Users/rashmiashok/projects/realtime-lakehouse-telemetry
+cd /Users/<profile>/projects/realtime-lakehouse-telemetry
 
 docker compose up -d
 ```
@@ -671,7 +671,7 @@ http://localhost:8080
 ## Terminal 2 — Start the Streaming Consumer
 
 ```bash
-cd /Users/rashmiashok/projects/realtime-lakehouse-telemetry
+cd /Users/<profile>/projects/realtime-lakehouse-telemetry
 
 source venv/bin/activate
 
@@ -707,7 +707,7 @@ Iceberg
 ## Terminal 3 — Start the Telemetry Producer
 
 ```bash
-cd /Users/rashmiashok/projects/realtime-lakehouse-telemetry
+cd /Users/<profile>/projects/realtime-lakehouse-telemetry
 
 source venv/bin/activate
 
@@ -733,7 +733,7 @@ Ctrl+C
 ## Terminal 4 — Start the Streamlit Dashboard
 
 ```bash
-cd /Users/rashmiashok/projects/realtime-lakehouse-telemetry
+cd /Users/<profile>/projects/realtime-lakehouse-telemetry
 
 source venv/bin/activate
 
@@ -788,7 +788,7 @@ Kafka
 From another terminal:
 
 ```bash
-cd /Users/rashmiashok/projects/realtime-lakehouse-telemetry
+cd /Users/<profile>/projects/realtime-lakehouse-telemetry
 
 source venv/bin/activate
 
